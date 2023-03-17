@@ -1,0 +1,43 @@
+image: node:lts
+
+pipelines:
+  default:
+    - step:
+        caches:
+          - node
+        name: 'Install JS Dependencies'
+        script:
+          - npm install
+    - step:
+        caches:
+          - node
+        name: 'Lint JS'
+        script:
+          - npm run lint
+    - step:
+        caches:
+          - node
+        name: 'Test JS'
+        image: atlassianlabs/docker-node-jdk-chrome-firefox:latest
+        size: 2x
+        script:
+          - npm run test
+    - step:
+        caches:
+          - node
+        artifacts:
+          - dist/**
+        name: 'Build assets'
+        script:
+          - npm run build
+    - step:
+        deployment: production
+        script:
+          - pipe: atlassian/aws-s3-deploy:0.3.8
+            variables:
+              AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+              AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+              AWS_DEFAULT_REGION: 'us-east-1'
+              S3_BUCKET: 'olga-angular-ui'
+              LOCAL_PATH: '$(pwd)/dist/'
+              ACL: 'public-read'
